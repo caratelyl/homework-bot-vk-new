@@ -17,10 +17,13 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 VK_TOKEN = os.getenv('VK_TOKEN')
 VK_USER_ID = os.getenv('VK_USER_ID')
+TOKENS = ('PRACTICUM_TOKEN', 'VK_TOKEN', 'VK_USER_ID')
 
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+RANDOM_ID_MIN = 1
+RANDOM_ID_MAX = 2 ** 31
 
 
 HOMEWORK_VERDICTS = {
@@ -38,7 +41,12 @@ logging.basicConfig(
 
 def check_tokens():
     """Проверить наличие всех обязательных переменных окружения."""
-    return all((PRACTICUM_TOKEN, VK_TOKEN, VK_USER_ID))
+    missing = [name for name in TOKENS if not globals().get(name)]
+    for name in missing:
+        logging.critical(
+            f'Отсутствует обязательная переменная окружения: {name}'
+        )
+    return not missing
 
 
 def send_message(vk, message):
@@ -46,7 +54,7 @@ def send_message(vk, message):
     vk.messages.send(
         user_id=VK_USER_ID,
         message=message,
-        random_id=random.randint(1, 2 ** 31),
+        random_id=random.randint(RANDOM_ID_MIN, RANDOM_ID_MAX),
     )
     logging.debug(f'Бот отправил сообщение: "{message}"')
 
@@ -77,8 +85,6 @@ def check_response(response):
         )
     if 'homeworks' not in response:
         raise KeyError('В ответе API отсутствует ключ "homeworks".')
-    if 'current_date' not in response:
-        raise KeyError('В ответе API отсутствует ключ "current_date".')
     homeworks = response['homeworks']
     if not isinstance(homeworks, list):
         raise TypeError(
@@ -93,7 +99,7 @@ def parse_status(homework):
     if 'homework_name' not in homework:
         raise KeyError('В ответе API отсутствует ключ "homework_name".')
     homework_name = homework['homework_name']
-    status = homework.get('status')
+    status = homework['status'] 
     if status not in HOMEWORK_VERDICTS:
         raise ValueError(f'Неизвестный статус домашней работы: "{status}".')
     verdict = HOMEWORK_VERDICTS[status]
