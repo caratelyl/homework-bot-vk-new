@@ -99,7 +99,7 @@ def parse_status(homework):
     if 'homework_name' not in homework:
         raise KeyError('В ответе API отсутствует ключ "homework_name".')
     homework_name = homework['homework_name']
-    status = homework['status'] 
+    status = homework['status']
     if status not in HOMEWORK_VERDICTS:
         raise ValueError(f'Неизвестный статус домашней работы: "{status}".')
     verdict = HOMEWORK_VERDICTS[status]
